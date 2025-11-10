@@ -1,0 +1,104 @@
+service: alexa-ptv-skill
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ap-southeast-2  # Sydney region (closest to Melbourne)
+  stage: ${opt:stage, 'dev'}
+  memorySize: 256
+  timeout: 10
+
+  environment:
+    PTV_DEV_ID: ${env:PTV_DEV_ID}
+    PTV_API_KEY: ${env:PTV_API_KEY}
+    DYNAMODB_PERSISTENCE_TABLE_NAME: ${self:custom.tableName}
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:GetItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:Query
+            - dynamodb:Scan
+          Resource:
+            - Fn::GetAtt: [AlexaPtvSkillTable, Arn]
+
+custom:
+  tableName: ${self:service}-${self:provider.stage}
+
+functions:
+  alexaSkill:
+    handler: lambda/index.handler
+    description: Alexa skill for Melbourne PTV train departure times
+    events:
+      - alexaSkill:
+          appId: ${env:ALEXA_SKILL_ID, ''}  # Optional: Add your skill ID for validation
+          enabled: true
+
+resources:
+  Resources:
+    # DynamoDB table for storing user preferences (home stations)
+    AlexaPtvSkillTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableName}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        Tags:
+          - Key: Service
+            Value: ${self:service}
+          - Key: Stage
+            Value: ${self:provider.stage}
+
+        # Enable Point-in-Time Recovery for production
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: ${self:custom.pitrEnabled.${self:provider.stage}, false}
+
+        # Enable encryption at rest
+        SSESpecification:
+          SSEEnabled: true
+
+  Outputs:
+    AlexaSkillLambdaArn:
+      Description: ARN of the Lambda function for Alexa Skill configuration
+      Value:
+        Fn::GetAtt: [AlexaSkillLambdaFunction, Arn]
+      Export:
+        Name: ${self:service}-${self:provider.stage}-lambda-arn
+
+    DynamoDBTableName:
+      Description: Name of the DynamoDB table for persistent attributes
+      Value: ${self:custom.tableName}
+      Export:
+        Name: ${self:service}-${self:provider.stage}-table-name
+
+plugins:
+  - serverless-offline  # For local testing (optional)
+
+# Additional custom settings
+custom:
+  # Enable PITR in production
+  pitrEnabled:
+    prod: true
+    staging: true
+    dev: false
+
+package:
+  patterns:
+    - lambda/**
+    - '!lambda/node_modules/aws-sdk/**'  # Exclude aws-sdk (provided by Lambda)
+    - '!lambda/.env'  # Don't include local .env in deployment
+    - '!tests/**'
+    - '!*.md'
+    - '!.git/**'

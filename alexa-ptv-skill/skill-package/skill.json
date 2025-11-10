@@ -1,0 +1,60 @@
+{
+  "manifest": {
+    "publishingInformation": {
+      "locales": {
+        "en-AU": {
+          "summary": "Get real-time Melbourne PTV train departure times",
+          "examplePhrases": [
+            "Alexa, ask train times when is the next train from Flinders Street",
+            "Alexa, ask train times for my next train",
+            "Alexa, ask train times to set my home station to Richmond"
+          ],
+          "keywords": [
+            "melbourne",
+            "ptv",
+            "public transport",
+            "train",
+            "timetable",
+            "departures",
+            "metro"
+          ],
+          "name": "PTV Train Times",
+          "description": "Get real-time train departure information for Melbourne's Public Transport Victoria (PTV) network. Ask for train times from any station, save your home station for quick access, and stay updated on the next departures.\n\nFeatures:\n- Real-time train departure times\n- Next 3-5 departures with platform information\n- Save your home station for quick queries\n- Times displayed in minutes for convenience\n- Supports all Melbourne train stations\n\nExample commands:\n- \"Alexa, ask train times when is the next train from Flinders Street\"\n- \"Alexa, ask train times for my next train\" (uses saved home station)\n- \"Alexa, ask train times to set my home station to Richmond\"\n\nNote: Requires PTV API credentials to function."
+        }
+      },
+      "isAvailableWorldwide": false,
+      "testingInstructions": "This skill requires PTV API credentials (DEV_ID and API_KEY) to be configured in the Lambda environment variables. Test with popular Melbourne stations like 'Flinders Street', 'Southern Cross', 'Richmond', or 'Melbourne Central'.",
+      "category": "NAVIGATION_AND_TRIP_PLANNER",
+      "distributionCountries": [
+        "AU"
+      ]
+    },
+    "apis": {
+      "custom": {
+        "endpoint": {
+          "uri": "arn:aws:lambda:ap-southeast-2:YOUR_AWS_ACCOUNT_ID:function:alexa-ptv-skill"
+        },
+        "interfaces": []
+      }
+    },
+    "manifestVersion": "1.0",
+    "permissions": [
+      {
+        "name": "alexa::devices::all::geolocation:read"
+      }
+    ],
+    "privacyAndCompliance": {
+      "allowsPurchases": false,
+      "isExportCompliant": true,
+      "containsAds": false,
+      "isChildDirected": false,
+      "usesPersonalInfo": true,
+      "locales": {
+        "en-AU": {
+          "privacyPolicyUrl": "https://example.com/privacy-policy",
+          "termsOfUseUrl": "https://example.com/terms-of-use"
+        }
+      }
+    }
+  }
+}

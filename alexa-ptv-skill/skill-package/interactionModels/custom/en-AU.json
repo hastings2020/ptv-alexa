@@ -1,0 +1,92 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "train times",
+      "intents": [
+        {
+          "name": "GetTrainTimesIntent",
+          "slots": [
+            {
+              "name": "StationName",
+              "type": "AMAZON.SearchQuery",
+              "samples": [
+                "{StationName}"
+              ]
+            }
+          ],
+          "samples": [
+            "when is the next train from {StationName}",
+            "what are the train times from {StationName}",
+            "train times from {StationName}",
+            "departures from {StationName}",
+            "next train from {StationName}",
+            "trains from {StationName}",
+            "what trains are leaving {StationName}",
+            "when does the next train leave from {StationName}",
+            "get train times for {StationName}",
+            "check {StationName} departures"
+          ]
+        },
+        {
+          "name": "GetMyStationIntent",
+          "slots": [],
+          "samples": [
+            "when is my next train",
+            "my train times",
+            "next train",
+            "my departures",
+            "when does my train leave",
+            "what time is my train",
+            "check my station",
+            "my home station times",
+            "departures from my station"
+          ]
+        },
+        {
+          "name": "SetHomeStationIntent",
+          "slots": [
+            {
+              "name": "StationName",
+              "type": "AMAZON.SearchQuery",
+              "samples": [
+                "{StationName}"
+              ]
+            }
+          ],
+          "samples": [
+            "set my home station to {StationName}",
+            "save {StationName} as my home station",
+            "my home station is {StationName}",
+            "remember {StationName}",
+            "set home station {StationName}",
+            "make {StationName} my default station",
+            "save station {StationName}",
+            "set my station to {StationName}",
+            "change my home station to {StationName}"
+          ]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        }
+      ],
+      "types": []
+    }
+  }
+}
