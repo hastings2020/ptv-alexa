@@ -1,4 +1,5 @@
 const Alexa = require('ask-sdk-core');
+const { DynamoDbPersistenceAdapter } = require('ask-sdk-dynamodb-persistence-adapter');
 const ptvApi = require('./ptvApi');
 const utils = require('./utils');
 
@@ -331,7 +332,7 @@ exports.handler = skillBuilder
     .addRequestInterceptors(RequestInterceptor)
     .addResponseInterceptors(ResponseInterceptor)
     .withPersistenceAdapter(
-        new Alexa.ddbPersistenceAdapter.DynamoDbPersistenceAdapter({
+        new DynamoDbPersistenceAdapter({
             tableName: process.env.DYNAMODB_PERSISTENCE_TABLE_NAME || 'AlexaPtvSkill',
             createTable: true
         })
