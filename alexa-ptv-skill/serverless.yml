@@ -49,6 +49,11 @@ provider:
 
 custom:
   tableName: ${self:service}-${self:provider.stage}
+  # Enable PITR in production
+  pitrEnabled:
+    prod: true
+    staging: true
+    dev: false
 
 functions:
   alexaSkill:
@@ -103,14 +108,6 @@ resources:
 
 plugins:
   - serverless-offline  # For local testing (optional)
-
-# Additional custom settings
-custom:
-  # Enable PITR in production
-  pitrEnabled:
-    prod: true
-    staging: true
-    dev: false
 
 package:
   patterns:
