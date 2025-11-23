@@ -2,17 +2,70 @@ const crypto = require('crypto');
 const axios = require('axios');
 
 const PTV_BASE_URL = 'https://timetableapi.ptv.vic.gov.au';
-const DEV_ID = process.env.PTV_DEV_ID;
-const API_KEY = process.env.PTV_API_KEY;
+
+// Cached credentials (loaded from Parameter Store on first use)
+let cachedCredentials = null;
+
+/**
+ * Fetch PTV credentials from AWS Systems Manager Parameter Store
+ * Credentials are cached after first retrieval for performance
+ * @returns {Promise<{devId: string, apiKey: string}>}
+ */
+async function getCredentials() {
+    if (cachedCredentials) {
+        return cachedCredentials;
+    }
+
+    // Check if parameters are stored as direct env vars (for local testing)
+    if (process.env.PTV_DEV_ID && process.env.PTV_API_KEY) {
+        cachedCredentials = {
+            devId: process.env.PTV_DEV_ID,
+            apiKey: process.env.PTV_API_KEY
+        };
+        return cachedCredentials;
+    }
+
+    // Fetch from Parameter Store
+    const AWS = require('aws-sdk');
+    const ssm = new AWS.SSM({ region: process.env.AWS_REGION || 'ap-southeast-2' });
+
+    const devIdParam = process.env.PTV_DEV_ID_PARAMETER;
+    const apiKeyParam = process.env.PTV_API_KEY_PARAMETER;
+
+    if (!devIdParam || !apiKeyParam) {
+        throw new Error('PTV parameter names not configured in environment');
+    }
+
+    try {
+        const params = await ssm.getParameters({
+            Names: [devIdParam, apiKeyParam],
+            WithDecryption: true
+        }).promise();
+
+        const devId = params.Parameters.find(p => p.Name === devIdParam)?.Value;
+        const apiKey = params.Parameters.find(p => p.Name === apiKeyParam)?.Value;
+
+        if (!devId || !apiKey) {
+            throw new Error('Failed to retrieve PTV credentials from Parameter Store');
+        }
+
+        cachedCredentials = { devId, apiKey };
+        return cachedCredentials;
+    } catch (error) {
+        console.error('Error fetching credentials from Parameter Store:', error);
+        throw error;
+    }
+}
 
 /**
  * Generate HMAC-SHA1 signature for PTV API authentication
  * @param {string} request - The API request path (e.g., "/v3/search/Flinders")
+ * @param {string} apiKey - The PTV API key
  * @returns {string} The signature for the request
  */
-function generateSignature(request) {
+function generateSignature(request, apiKey) {
     const signature = crypto
-        .createHmac('sha1', API_KEY)
+        .createHmac('sha1', apiKey)
         .update(request)
         .digest('hex')
         .toUpperCase();
@@ -22,15 +75,17 @@ function generateSignature(request) {
 /**
  * Build a signed PTV API URL
  * @param {string} endpoint - The API endpoint (e.g., "/v3/search/Flinders")
+ * @param {string} devId - The PTV developer ID
+ * @param {string} apiKey - The PTV API key
  * @returns {string} The complete signed URL
  */
-function buildSignedUrl(endpoint) {
+function buildSignedUrl(endpoint, devId, apiKey) {
     // Add devid parameter
     const separator = endpoint.includes('?') ? '&' : '?';
-    const request = `${endpoint}${separator}devid=${DEV_ID}`;
+    const request = `${endpoint}${separator}devid=${devId}`;
 
     // Generate signature
-    const signature = generateSignature(request);
+    const signature = generateSignature(request, apiKey);
 
     // Build complete URL
     const url = `${PTV_BASE_URL}${request}&signature=${signature}`;
@@ -45,8 +100,9 @@ function buildSignedUrl(endpoint) {
  */
 async function searchStation(searchTerm) {
     try {
+        const { devId, apiKey } = await getCredentials();
         const endpoint = `/v3/search/${encodeURIComponent(searchTerm)}`;
-        const url = buildSignedUrl(endpoint);
+        const url = buildSignedUrl(endpoint, devId, apiKey);
 
         console.log(`Searching for station: ${searchTerm}`);
         const response = await axios.get(url);
@@ -79,8 +135,9 @@ async function searchStation(searchTerm) {
  */
 async function getDepartures(stopId, maxResults = 5) {
     try {
+        const { devId, apiKey } = await getCredentials();
         const endpoint = `/v3/departures/route_type/0/stop/${stopId}?max_results=${maxResults}&include_cancelled=false&expand=route&expand=direction`;
-        const url = buildSignedUrl(endpoint);
+        const url = buildSignedUrl(endpoint, devId, apiKey);
 
         console.log(`Getting departures for stop ID: ${stopId}`);
         const response = await axios.get(url);
@@ -131,8 +188,9 @@ async function getDepartures(stopId, maxResults = 5) {
  */
 async function getStopDetails(stopId) {
     try {
+        const { devId, apiKey } = await getCredentials();
         const endpoint = `/v3/stops/${stopId}/route_type/0`;
-        const url = buildSignedUrl(endpoint);
+        const url = buildSignedUrl(endpoint, devId, apiKey);
 
         console.log(`Getting stop details for ID: ${stopId}`);
         const response = await axios.get(url);

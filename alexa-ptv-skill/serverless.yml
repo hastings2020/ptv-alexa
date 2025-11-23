@@ -12,10 +12,9 @@ provider:
   timeout: 10
 
   environment:
-    # Secrets stored in AWS Systems Manager Parameter Store (encrypted with KMS)
-    # The ~true suffix indicates SecureString type (encrypted)
-    PTV_DEV_ID: ${ssm:/alexa-ptv-skill/${self:provider.stage}/ptv-dev-id~true}
-    PTV_API_KEY: ${ssm:/alexa-ptv-skill/${self:provider.stage}/ptv-api-key~true}
+    # Parameter Store parameter names - Lambda will fetch these at runtime
+    PTV_DEV_ID_PARAMETER: /alexa-ptv-skill/${self:provider.stage}/ptv-dev-id
+    PTV_API_KEY_PARAMETER: /alexa-ptv-skill/${self:provider.stage}/ptv-api-key
     DYNAMODB_PERSISTENCE_TABLE_NAME: ${self:custom.tableName}
 
   iam:
