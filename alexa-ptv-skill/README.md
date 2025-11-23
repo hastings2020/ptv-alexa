@@ -9,6 +9,7 @@ An Alexa skill that provides real-time train departure information for Melbourne
 - ⏱️ Next 3-5 departures with platform information
 - 🕒 Smart time formatting (minutes for soon, clock time for later)
 - 📱 Visual cards in the Alexa app with full departure details
+- 🔒 Secure credential storage using AWS Parameter Store (encrypted with KMS)
 
 ## Sample Interactions
 
@@ -72,20 +73,32 @@ cd alexa-ptv-skill/lambda
 npm install
 ```
 
-### 2. Set Up Environment Variables
+### 2. Store PTV Credentials in AWS Parameter Store
 
-Create a `.env` file in the `lambda` directory (for local testing):
+**IMPORTANT**: This skill uses AWS Systems Manager Parameter Store to securely store your PTV API credentials. This provides:
+- ✅ Encryption at rest with AWS KMS
+- ✅ Encryption in transit
+- ✅ IAM access control
+- ✅ Audit trail via CloudTrail
+- ✅ Credentials not visible in Lambda console
+
+Run the setup script to store your credentials:
 
 ```bash
+cd alexa-ptv-skill
+./setup-secrets.sh dev ap-southeast-2
+
+# For different stages or regions:
+# ./setup-secrets.sh prod us-east-1
+# ./setup-secrets.sh staging ap-southeast-2 myprofile
+```
+
+The script will prompt you for your PTV Developer ID and API Key, then securely store them as encrypted parameters.
+
+**Optional**: For local testing only, you can create a `.env` file:
+```bash
 cp .env.example lambda/.env
-```
-
-Edit `lambda/.env` and add your credentials:
-
-```
-PTV_DEV_ID=your_dev_id_here
-PTV_API_KEY=your_api_key_here
-DYNAMODB_PERSISTENCE_TABLE_NAME=AlexaPtvSkill
+# Edit lambda/.env and add your credentials for local testing
 ```
 
 ### 3. Run Tests
@@ -100,7 +113,7 @@ npm run test:coverage
 
 ### 4. Deploy to AWS Lambda
 
-#### Option A: Using Serverless Framework (Recommended)
+#### Option A: Using Deployment Script (Recommended)
 
 1. Install Serverless Framework:
 ```bash
@@ -110,17 +123,36 @@ npm install -g serverless
 2. Configure AWS credentials:
 ```bash
 serverless config credentials --provider aws --key YOUR_ACCESS_KEY --secret YOUR_SECRET_KEY
+# Or use: aws configure
 ```
 
-3. Deploy:
+3. Store your PTV credentials (if not already done):
 ```bash
 cd alexa-ptv-skill
-serverless deploy
+./setup-secrets.sh dev ap-southeast-2
 ```
 
-4. Note the Lambda ARN from the output - you'll need this for the Alexa Skill configuration.
+4. Deploy:
+```bash
+./deploy.sh dev ap-southeast-2
 
-#### Option B: Manual Deployment
+# For production with a specific profile:
+# ./deploy.sh prod ap-southeast-2 myprofile
+```
+
+5. Note the Lambda ARN from the output - you'll need this for the Alexa Skill configuration.
+
+#### Option B: Using Serverless Framework Directly
+
+```bash
+cd alexa-ptv-skill
+serverless deploy --stage dev --region ap-southeast-2
+
+# For production:
+# serverless deploy --stage prod --region ap-southeast-2
+```
+
+#### Option C: Manual Deployment (Not Recommended)
 
 1. **Create Lambda Function:**
    - Go to AWS Lambda Console
@@ -139,12 +171,14 @@ serverless deploy
      ```
    - Upload the zip file to Lambda
 
-3. **Configure Environment Variables:**
-   - In Lambda console, go to Configuration → Environment variables
-   - Add:
-     - `PTV_DEV_ID`: Your PTV developer ID
-     - `PTV_API_KEY`: Your PTV API key
-     - `DYNAMODB_PERSISTENCE_TABLE_NAME`: `AlexaPtvSkill`
+3. **Store PTV Credentials in Parameter Store:**
+   - Run the setup script to store credentials securely:
+     ```bash
+     ./setup-secrets.sh dev ap-southeast-2
+     ```
+   - Or manually create parameters in AWS Systems Manager:
+     - Parameter: `/alexa-ptv-skill/dev/ptv-dev-id` (Type: SecureString)
+     - Parameter: `/alexa-ptv-skill/dev/ptv-api-key` (Type: SecureString)
 
 4. **Set up DynamoDB:**
    - Go to DynamoDB console
@@ -153,8 +187,10 @@ serverless deploy
    - Use default settings
 
 5. **Configure IAM Permissions:**
-   - Attach `AmazonDynamoDBFullAccess` policy to Lambda execution role
-   - Or create a custom policy with permissions for the DynamoDB table
+   - Attach the following policies to Lambda execution role:
+     - `AmazonDynamoDBFullAccess` (or custom DynamoDB policy)
+     - `AmazonSSMReadOnlyAccess` (for reading Parameter Store)
+     - Policy allowing `kms:Decrypt` for SecureString parameters
 
 6. **Configure Alexa Skills Kit Trigger:**
    - In Lambda console, click "Add trigger"
@@ -210,19 +246,34 @@ serverless deploy
 
 ## Configuration
 
-### Environment Variables
+### Credentials (Parameter Store)
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `PTV_DEV_ID` | Yes | Your PTV developer ID |
-| `PTV_API_KEY` | Yes | Your PTV API key |
-| `DYNAMODB_PERSISTENCE_TABLE_NAME` | No | DynamoDB table name (default: `AlexaPtvSkill`) |
+This skill uses AWS Systems Manager Parameter Store to securely store credentials:
+
+| Parameter Name | Type | Description |
+|----------------|------|-------------|
+| `/alexa-ptv-skill/{stage}/ptv-dev-id` | SecureString | Your PTV developer ID (encrypted) |
+| `/alexa-ptv-skill/{stage}/ptv-api-key` | SecureString | Your PTV API key (encrypted) |
+
+**Security Benefits:**
+- 🔒 Encrypted at rest using AWS KMS
+- 🔒 Encrypted in transit
+- 🔒 IAM-based access control
+- 🔒 Audit trail via CloudTrail
+- 🔒 Not visible in Lambda console
+- 🔒 Rotation capability
+
+**Setup:** Use `./setup-secrets.sh [stage] [region]` to store credentials securely.
 
 ### Lambda Function Settings
 
 - **Memory**: 256 MB (recommended)
 - **Timeout**: 10 seconds
 - **Runtime**: Node.js 18.x or later
+- **Environment Variables**:
+  - `PTV_DEV_ID` - Automatically populated from Parameter Store
+  - `PTV_API_KEY` - Automatically populated from Parameter Store
+  - `DYNAMODB_PERSISTENCE_TABLE_NAME` - Set to table name
 
 ## Supported Intents
 

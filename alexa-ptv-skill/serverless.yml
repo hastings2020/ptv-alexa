@@ -11,13 +11,16 @@ provider:
   timeout: 10
 
   environment:
-    PTV_DEV_ID: ${env:PTV_DEV_ID}
-    PTV_API_KEY: ${env:PTV_API_KEY}
+    # Secrets stored in AWS Systems Manager Parameter Store (encrypted with KMS)
+    # The ~true suffix indicates SecureString type (encrypted)
+    PTV_DEV_ID: ${ssm:/alexa-ptv-skill/${self:provider.stage}/ptv-dev-id~true}
+    PTV_API_KEY: ${ssm:/alexa-ptv-skill/${self:provider.stage}/ptv-api-key~true}
     DYNAMODB_PERSISTENCE_TABLE_NAME: ${self:custom.tableName}
 
   iam:
     role:
       statements:
+        # DynamoDB permissions for user preferences
         - Effect: Allow
           Action:
             - dynamodb:PutItem
@@ -28,6 +31,21 @@ provider:
             - dynamodb:Scan
           Resource:
             - Fn::GetAtt: [AlexaPtvSkillTable, Arn]
+
+        # Parameter Store permissions for reading encrypted secrets
+        - Effect: Allow
+          Action:
+            - ssm:GetParameter
+            - ssm:GetParameters
+          Resource:
+            - arn:aws:ssm:${self:provider.region}:*:parameter/alexa-ptv-skill/${self:provider.stage}/*
+
+        # KMS permissions for decrypting SecureString parameters
+        - Effect: Allow
+          Action:
+            - kms:Decrypt
+          Resource:
+            - "*"  # KMS key ARN - can be restricted to specific key if needed
 
 custom:
   tableName: ${self:service}-${self:provider.stage}

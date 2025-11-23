@@ -17,7 +17,7 @@ Get your Alexa PTV Train Times skill running in 15 minutes!
 
 ## Step 2: Deploy to AWS (5 minutes)
 
-### Option A: Using Serverless Framework
+### Using Automated Deployment (Recommended)
 
 ```bash
 # Install dependencies
@@ -33,35 +33,24 @@ serverless config credentials \
   --key YOUR_ACCESS_KEY \
   --secret YOUR_SECRET_KEY
 
-# Set environment variables
-export PTV_DEV_ID=your_dev_id
-export PTV_API_KEY=your_api_key
+# OR use AWS CLI
+aws configure
+
+# Go back to skill directory
+cd ..
+
+# Store PTV credentials securely in Parameter Store
+./setup-secrets.sh dev ap-southeast-2
+# This will prompt you for your PTV_DEV_ID and PTV_API_KEY
+# Credentials are encrypted and stored in AWS Parameter Store
 
 # Deploy!
-cd ..
-serverless deploy
+./deploy.sh dev ap-southeast-2
 
 # Copy the Lambda ARN from the output
 ```
 
-### Option B: Manual Lambda Upload
-
-```bash
-# Install dependencies
-cd alexa-ptv-skill/lambda
-npm install --production
-
-# Create deployment package
-zip -r lambda-deployment.zip .
-
-# Upload to AWS Lambda Console
-# Set environment variables in Lambda console:
-# - PTV_DEV_ID
-# - PTV_API_KEY
-# - DYNAMODB_PERSISTENCE_TABLE_NAME=AlexaPtvSkill
-
-# Create DynamoDB table named "AlexaPtvSkill" with primary key "id" (String)
-```
+**Security Note:** Your PTV credentials are now encrypted with AWS KMS and stored in Parameter Store, not visible in the Lambda console!
 
 ## Step 3: Configure Alexa Skill (5 minutes)
 
@@ -111,9 +100,16 @@ Check CloudWatch logs in AWS Lambda console:
 
 ### Invalid API credentials
 
-Verify environment variables in Lambda:
-- Configuration → Environment variables
-- Make sure `PTV_DEV_ID` and `PTV_API_KEY` are set
+Verify Parameter Store parameters exist:
+```bash
+aws ssm get-parameter --name /alexa-ptv-skill/dev/ptv-dev-id --region ap-southeast-2
+aws ssm get-parameter --name /alexa-ptv-skill/dev/ptv-api-key --region ap-southeast-2
+```
+
+If missing, run:
+```bash
+./setup-secrets.sh dev ap-southeast-2
+```
 
 ### Station not found
 
