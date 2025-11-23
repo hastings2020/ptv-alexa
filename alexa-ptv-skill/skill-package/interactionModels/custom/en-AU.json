@@ -8,10 +8,7 @@
           "slots": [
             {
               "name": "StationName",
-              "type": "AMAZON.SearchQuery",
-              "samples": [
-                "{StationName}"
-              ]
+              "type": "AMAZON.SearchQuery"
             }
           ],
           "samples": [
@@ -47,10 +44,7 @@
           "slots": [
             {
               "name": "StationName",
-              "type": "AMAZON.SearchQuery",
-              "samples": [
-                "{StationName}"
-              ]
+              "type": "AMAZON.SearchQuery"
             }
           ],
           "samples": [
