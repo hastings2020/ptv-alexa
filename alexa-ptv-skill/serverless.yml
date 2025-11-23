@@ -112,7 +112,6 @@ plugins:
 package:
   patterns:
     - lambda/**
-    - '!lambda/node_modules/aws-sdk/**'  # Exclude aws-sdk (provided by Lambda)
     - '!lambda/.env'  # Don't include local .env in deployment
     - '!tests/**'
     - '!*.md'
