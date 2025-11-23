@@ -334,7 +334,7 @@ exports.handler = skillBuilder
     .withPersistenceAdapter(
         new DynamoDbPersistenceAdapter({
             tableName: process.env.DYNAMODB_PERSISTENCE_TABLE_NAME || 'AlexaPtvSkill',
-            createTable: true
+            createTable: false  // Table already created by Serverless Framework
         })
     )
     .lambda();
